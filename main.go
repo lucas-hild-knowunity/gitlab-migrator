@@ -457,31 +457,13 @@ func performMigration(ctx context.Context, projects []Project) error {
 }
 
 func migrateProject(ctx context.Context, proj []string) error {
+	project, _, err := gl.Projects.GetProject(proj[0], &gitlab.GetProjectOptions{})
+	if err != nil {
+		return fmt.Errorf("retrieving gitlab project: %v", err)
+	}
+
 	gitlabPath := strings.Split(proj[0], "/")
 	githubPath := strings.Split(proj[1], "/")
-
-	logger.Info("searching for GitLab project", "name", gitlabPath[1], "group", gitlabPath[0])
-	searchTerm := gitlabPath[1]
-	projectResult, _, err := gl.Projects.ListProjects(&gitlab.ListProjectsOptions{Search: &searchTerm})
-	if err != nil {
-		return fmt.Errorf("listing projects: %v", err)
-	}
-
-	var project *gitlab.Project
-	for _, item := range projectResult {
-		if item == nil {
-			continue
-		}
-
-		if item.PathWithNamespace == proj[0] {
-			logger.Debug("found GitLab project", "name", gitlabPath[1], "group", gitlabPath[0], "project_id", item.ID)
-			project = item
-		}
-	}
-
-	if project == nil {
-		return fmt.Errorf("no matching GitLab project found: %s", proj[0])
-	}
 
 	cloneUrl, err := url.Parse(project.HTTPURLToRepo)
 	if err != nil {
